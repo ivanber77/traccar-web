@@ -32,7 +32,13 @@ fi
 export VITE_API_URL="$BACKEND_URL"
 export API_URL="$BACKEND_URL"
 
+# Configurar puerto (por defecto 3000, o usar PORT si está definido)
+# Para usar puerto 80: PORT=80 ./dev.sh
+PORT=${PORT:-3000}
+export PORT
+
 echo "✅ Frontend iniciado"
+echo "🔌 Puerto: $PORT"
 echo "🌐 Abre tu navegador en la URL que se muestre arriba"
 echo ""
 echo "Presiona Ctrl+C para detener"
@@ -41,15 +47,16 @@ echo ""
 # Iniciar servidor de desarrollo
 # Intentar diferentes comandos según el framework
 if grep -q "react-scripts" package.json 2>/dev/null; then
-    npm start
+    PORT=$PORT npm start
 elif grep -q "vite" package.json 2>/dev/null; then
     # Verificar si necesitamos sudo para el puerto 80
-    if [ "$(id -u)" -eq 0 ] || [ "$PORT" = "80" ]; then
-        echo "⚠️  Ejecutando en puerto 80 (requiere permisos de administrador)"
-        npm run dev
-    else
-        npm run dev
+    if [ "$PORT" = "80" ] && [ "$(id -u)" -ne 0 ]; then
+        echo "⚠️  Puerto 80 requiere permisos de administrador"
+        echo "   Ejecuta: sudo PORT=80 ./dev.sh"
+        echo "   O usa otro puerto: PORT=3000 ./dev.sh"
+        exit 1
     fi
+    PORT=$PORT npm run dev
 elif grep -q "webpack" package.json 2>/dev/null; then
     npm run serve || npm start
 else
