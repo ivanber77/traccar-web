@@ -17,30 +17,36 @@ El comando `vite` no se encuentra en el PATH durante la ejecución. Esto puede d
 
 ## Solución Aplicada
 
-### 1. Actualizado `package.json`
+### 1. Movido `vite` a `dependencies`
 
-Cambiado el script `start` para usar `npx vite`:
+El problema era que `vite` estaba en `devDependencies`, y en producción DO App Platform podría no instalar devDependencies. Ahora `vite` y sus plugins están en `dependencies`:
 
 ```json
-"scripts": {
-  "start": "npx vite --host",
-  "dev": "npx vite --host",
-  "build": "npx vite build"
+"dependencies": {
+  ...
+  "vite": "^7.2.6",
+  "@vitejs/plugin-react-swc": "^4.2.2",
+  "vite-plugin-pwa": "^1.2.0",
+  "vite-plugin-static-copy": "^3.1.4",
+  "vite-plugin-svgr": "^4.5.0"
 }
 ```
 
-**Por qué funciona**: `npx` busca el ejecutable en `node_modules/.bin` automáticamente.
+**Por qué funciona**: Las dependencias siempre se instalan, asegurando que `vite` esté disponible en producción.
 
-### 2. Actualizado `.do/app.yaml`
+### 2. Actualizado scripts
 
-Cambiado `build_command` para usar `npm ci`:
+Los scripts ahora usan `vite` directamente (sin `npx`):
 
-```yaml
-build_command: npm ci && npm run build
-run_command: npm start
+```json
+"scripts": {
+  "start": "vite --host",
+  "dev": "vite --host",
+  "build": "vite build"
+}
 ```
 
-**Por qué funciona**: `npm ci` instala dependencias de forma más confiable en entornos CI/CD.
+**Por qué funciona**: Con `vite` en `dependencies`, está disponible directamente en `node_modules/.bin/vite`.
 
 ## Configuración Recomendada para DO App Platform
 
