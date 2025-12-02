@@ -4,16 +4,34 @@ import svgr from 'vite-plugin-svgr';
 import { VitePWA } from 'vite-plugin-pwa';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
-export default defineConfig(() => ({
+export default defineConfig(({ mode }) => {
+  // Backend URL desde variable de entorno o default
+  const backendUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:8082';
+  const backendHost = new URL(backendUrl).hostname;
+  const backendPort = new URL(backendUrl).port || (backendUrl.includes('https') ? '443' : '80');
+  const backendProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
+  const backendHttpProtocol = backendUrl.startsWith('https') ? 'https' : 'http';
+  
+  return {
   server: {
     port: 3000,
     proxy: {
-      '/api/socket': 'ws://localhost:8082',
-      '/api': 'http://localhost:8082',
+      '/api/socket': {
+        target: `${backendHttpProtocol}://${backendHost}:${backendPort}`,
+        ws: true,
+        changeOrigin: true,
+      },
+      '/api': {
+        target: `${backendHttpProtocol}://${backendHost}:${backendPort}`,
+        changeOrigin: true,
+      },
     },
   },
   build: {
     outDir: 'build',
+  },
+  define: {
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:8082'),
   },
   plugins: [
     svgr(),
@@ -26,8 +44,8 @@ export default defineConfig(() => ({
         globPatterns: ['**/*.{js,css,html,woff,woff2,mp3}'],
       },
       manifest: {
-        short_name: '${title}',
-        name: '${description}',
+        short_name: 'ConectyTrack',
+        name: 'ConectyTrack GPS Tracking System',
         theme_color: '${colorPrimary}',
         icons: [
           {
@@ -55,4 +73,5 @@ export default defineConfig(() => ({
       ],
     }),
   ],
-}));
+  };
+});

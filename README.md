@@ -1,28 +1,92 @@
-# [Traccar Web Interface](https://www.traccar.org)
+# Frontend Traccar - Proyecto Personalizado
 
-## Overview
+Frontend React/Vite del sistema de rastreo GPS Traccar.
 
-Traccar is open source server for various GPS tracking devices. This repository contains web interface for the Traccar platform. For back-end checkout [main Traccar repository](https://github.com/tananaev/traccar).
+## Requisitos
 
-The app uses React, Material UI and MapLibre. For more information on how to build it please check the [web app documentation](https://www.traccar.org/build-web-app/).
+- Node.js 18+ 
+- npm o yarn
 
-## Team
+## Desarrollo Local
 
-- Anton Tananaev ([anton@traccar.org](mailto:anton@traccar.org))
-- Andrey Kunitsyn ([andrey@traccar.org](mailto:andrey@traccar.org))
+### Iniciar servidor de desarrollo
 
-## License
+```bash
+# Conectado a backend local
+./dev.sh
 
-    Apache License, Version 2.0
+# O conectado a backend remoto
+./dev.sh http://164.92.116.107:8082
+```
 
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
+Esto:
+- Instala dependencias si es necesario
+- Inicia servidor de desarrollo con hot reload
+- Se conecta al backend especificado
 
-        http://www.apache.org/licenses/LICENSE-2.0
+### Compilar para producción
 
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
+```bash
+./build.sh
+```
+
+Genera `build/` o `dist/` con archivos estáticos listos para desplegar.
+
+## Estructura
+
+```
+frontend/
+├── src/               # Código fuente React
+│   ├── main/         # Página principal
+│   ├── settings/     # Configuraciones
+│   ├── reports/      # Reportes
+│   └── map/          # Componentes de mapa
+├── public/           # Archivos estáticos
+└── build/           # Build de producción (generado)
+```
+
+## Personalización
+
+### Modificar UI
+
+1. Editar componentes en `src/`
+2. Los cambios se reflejan automáticamente con hot reload
+3. Probar en navegador
+
+### Conectar a Backend
+
+El frontend se conecta al backend mediante:
+
+1. **Variable de entorno** (recomendado):
+   ```bash
+   export VITE_API_URL=http://localhost:8082/api
+   ./dev.sh
+   ```
+
+2. **Configuración en código**:
+   Editar `src/store/base.js` o archivo de configuración
+
+### Cambiar Tema/Estilos
+
+- Editar `src/common/theme/`
+- Modificar `src/AppThemeProvider.jsx`
+
+## Tecnologías
+
+- React 19
+- Vite (build tool)
+- Material-UI
+- MapLibre GL (mapas)
+- Redux Toolkit
+
+## Scripts Disponibles
+
+- `npm start` - Desarrollo
+- `npm run build` - Compilación producción
+- `npm run lint` - Linter
+
+## Despliegue
+
+1. Compilar: `./build.sh`
+2. Copiar `build/` a servidor en `/opt/traccar/web/`
+3. O integrar en build del backend
