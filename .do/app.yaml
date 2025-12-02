@@ -1,5 +1,9 @@
 name: conectytrack-frontend
 region: nyc
+domains:
+  - domain: ctrack.conecty.io
+    type: PRIMARY
+    certificate: LETS_ENCRYPT
 services:
   - name: frontend
     github:
@@ -7,7 +11,7 @@ services:
       branch: main
       deploy_on_push: true
     source_dir: /
-    build_command: npm install && npm run build
+    build_command: npm ci && npm run build
     run_command: npm start
     environment_slug: node-js
     instance_count: 1
@@ -15,6 +19,8 @@ services:
     http_port: 8080
     health_check:
       http_path: /
+    routes:
+      - path: /
     envs:
       - key: PORT
         value: "8080"
