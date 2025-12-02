@@ -46,8 +46,8 @@ export default defineConfig(({ mode }) => {
         globPatterns: ['**/*.{js,css,html,woff,woff2,mp3}'],
       },
       manifest: {
-        short_name: 'ConectyTrack',
-        name: 'ConectyTrack GPS Tracking System',
+        short_name: 'cotrack',
+        name: 'cotrack GPS Tracking System',
         theme_color: '${colorPrimary}',
         icons: [
           {
