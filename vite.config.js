@@ -14,7 +14,7 @@ export default defineConfig(({ mode }) => {
   
   return {
   server: {
-    port: 3000,
+    port: 80,
     proxy: {
       '/api/socket': {
         target: `${backendHttpProtocol}://${backendHost}:${backendPort}`,
