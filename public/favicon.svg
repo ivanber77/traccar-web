@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- C con forma de pin de ubicación, verde lima brillante -->
+  <!-- Forma de pin: parte superior redondeada, punta abajo -->
+  <path d="M 256 64 
+           C 180 64 120 124 120 200 
+           C 120 224 128 246 140 264 
+           L 256 448 
+           L 372 264 
+           C 384 246 392 224 392 200 
+           C 392 124 332 64 256 64 
+           Z" 
+        fill="#84cc16"/>
+  
+  <!-- Abertura de la C (cortando el lado derecho) -->
+  <path d="M 320 200 
+           C 320 230 300 256 256 256 
+           C 212 256 192 230 192 200 
+           L 256 200 
+           Z" 
+        fill="#000000"/>
+  
+  <!-- Parte interna para hacer la C más visible -->
+  <path d="M 256 120 
+           C 300 120 336 156 336 200 
+           C 336 216 330 230 320 240 
+           L 256 304 
+           L 192 240 
+           C 182 230 176 216 176 200 
+           C 176 156 212 120 256 120 
+           Z" 
+        fill="#000000"/>
+</svg>

@@ -46,8 +46,8 @@ export default defineConfig(({ mode }) => {
         globPatterns: ['**/*.{js,css,html,woff,woff2,mp3}'],
       },
       manifest: {
-        short_name: 'cotrack',
-        name: 'cotrack GPS Tracking System',
+        short_name: 'CoTrack',
+        name: 'CoTrack GPS Tracking System',
         theme_color: '${colorPrimary}',
         icons: [
           {

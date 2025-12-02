@@ -5,11 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="${colorPrimary}" />
     <meta name="description" content="${description}" />
-    <link rel="icon" href="/favicon.ico" />
+    <!-- Favicon ICO (prioridad) -->
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <!-- Favicon PNG (diferentes tamaños) -->
+    <link rel="icon" type="image/png" href="/favicon-16x16.png" sizes="16x16" />
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" sizes="32x32" />
+    <!-- Apple Touch Icon -->
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" sizes="180x180" />
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" href="/pwa-192x192.png" sizes="192x192" />
+    <link rel="icon" type="image/png" href="/pwa-512x512.png" sizes="512x512" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css">
-    <title>cotrack</title>
+    <title>CoTrack</title>
     <style>
       .loader {
         position: fixed; top: calc(50% - 25px); left: calc(50% - 25px);
@@ -20,7 +28,7 @@
     </style>
   </head>
   <body>
-    <noscript>Enable JavaScript to use <a href="#">cotrack GPS Tracking System</a>.</noscript>
+    <noscript>Enable JavaScript to use <a href="#">CoTrack GPS Tracking System</a>.</noscript>
     <div id="root" class="root"></div>
     <div class="loader"></div>
     <script type="module" src="/src/index.jsx" onerror="alert('Loading error.')"></script>
