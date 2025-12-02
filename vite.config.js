@@ -14,8 +14,8 @@ export default defineConfig(({ mode }) => {
   
   return {
   server: {
-    host: '0.0.0.0', // Escuchar en todas las interfaces
-    port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+    host: '0.0.0.0', // Escuchar en todas las interfaces (requerido para DO App Platform)
+    port: process.env.PORT ? parseInt(process.env.PORT) : (process.env.NODE_ENV === 'production' ? 8080 : 3000),
     strictPort: true, // No cambiar de puerto automáticamente
     proxy: {
       '/api/socket': {

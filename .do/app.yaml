@@ -1,0 +1,31 @@
+name: conectytrack-frontend
+region: nyc
+services:
+  - name: frontend
+    github:
+      repo: tu-usuario/tu-repo
+      branch: main
+      deploy_on_push: true
+    source_dir: /
+    build_command: npm install && npm run build
+    run_command: npm start
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    http_port: 8080
+    health_check:
+      http_path: /
+    envs:
+      - key: PORT
+        value: "8080"
+        scope: RUN_TIME
+        type: SECRET
+      - key: VITE_API_URL
+        value: "http://164.92.116.107:8082"
+        scope: RUN_TIME
+        type: SECRET
+      - key: NODE_ENV
+        value: "production"
+        scope: RUN_TIME
+        type: SECRET
+
