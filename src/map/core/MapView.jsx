@@ -114,10 +114,11 @@ const MapView = ({ children }) => {
   }, [mapboxAccessToken]);
 
   useEffect(() => {
-    const filteredStyles = mapStyles.filter((s) => s.available && activeMapStyles.includes(s.id));
+    // Solo mostrar mapas que están disponibles (available: true)
+    const filteredStyles = mapStyles.filter((s) => s.available);
     const styles = filteredStyles.length ? filteredStyles : mapStyles.filter((s) => s.id === 'osm');
     switcher.updateStyles(styles, defaultMapStyle);
-  }, [mapStyles, defaultMapStyle, activeMapStyles, switcher]);
+  }, [mapStyles, defaultMapStyle, switcher]);
 
   useEffect(() => {
     const listener = (ready) => setMapReady(ready);

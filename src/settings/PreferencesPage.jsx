@@ -113,9 +113,9 @@ const PreferencesPage = () => {
                     }}
                     multiple
                   >
-                    {mapStyles.map((style) => (
+                    {mapStyles.filter((style) => style.available).map((style) => (
                       <MenuItem key={style.id} value={style.id}>
-                        <Typography component="span" color={style.available ? 'textPrimary' : 'error'}>{style.title}</Typography>
+                        <Typography component="span">{style.title}</Typography>
                       </MenuItem>
                     ))}
                   </Select>
@@ -136,9 +136,9 @@ const PreferencesPage = () => {
                     }}
                   >
                     <MenuItem value="">{'\u00a0'}</MenuItem>
-                    {mapOverlays.map((overlay) => (
+                    {mapOverlays.filter((overlay) => overlay.available).map((overlay) => (
                       <MenuItem key={overlay.id} value={overlay.id}>
-                        <Typography component="span" color={overlay.available ? 'textPrimary' : 'error'}>{overlay.title}</Typography>
+                        <Typography component="span">{overlay.title}</Typography>
                       </MenuItem>
                     ))}
                   </Select>

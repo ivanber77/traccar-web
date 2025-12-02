@@ -200,7 +200,7 @@
     "loginReset": "Reiniciar contraseña",
     "loginRegister": "Registrarse",
     "loginLogin": "Iniciar sesión",
-    "loginOpenId": "Iniciar sesión con OpenID",
+    "loginOpenId": "Iniciar sesión con Google",
     "loginFailed": "Email o contraseña incorrecta",
     "loginCreated": "Se ha registrado un nuevo usuario",
     "loginResetSuccess": "Comprueba tu email",
