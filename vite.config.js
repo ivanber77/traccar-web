@@ -6,7 +6,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 export default defineConfig(({ mode }) => {
   // Backend URL desde variable de entorno o default
-  const backendUrl = process.env.VITE_API_URL || process.env.API_URL || 'http://localhost:8082';
+  const backendUrl = process.env.VITE_API_URL || process.env.API_URL || 'https://tracker.conecty.io';
   const backendHost = new URL(backendUrl).hostname;
   const backendPort = new URL(backendUrl).port || (backendUrl.includes('https') ? '443' : '80');
   const backendProtocol = backendUrl.startsWith('https') ? 'wss' : 'ws';
@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
     outDir: 'build',
   },
   define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:8082'),
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://tracker.conecty.io'),
   },
   plugins: [
     svgr(),

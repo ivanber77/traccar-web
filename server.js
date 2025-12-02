@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const BACKEND_URL = process.env.VITE_API_URL || process.env.API_URL || 'http://164.92.116.107:8082';
+const BACKEND_URL = process.env.VITE_API_URL || process.env.API_URL || 'https://tracker.conecty.io';
 
 console.log(`🚀 Starting server on port ${PORT}`);
 console.log(`🔗 Backend URL: ${BACKEND_URL}`);

@@ -9,7 +9,7 @@ cd "$(dirname "$0")"
 
 # Backend URL - cambiar según necesites
 # Por defecto conecta al servidor remoto, pero puedes pasar localhost:8082 para backend local
-BACKEND_URL=${1:-"http://164.92.116.107:8082"}
+BACKEND_URL=${1:-"https://tracker.conecty.io"}
 
 echo "🚀 Iniciando frontend en modo desarrollo..."
 echo "🔗 Conectado a backend: $BACKEND_URL"
