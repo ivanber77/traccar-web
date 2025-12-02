@@ -14,7 +14,9 @@ export default defineConfig(({ mode }) => {
   
   return {
   server: {
+    host: '0.0.0.0', // Escuchar en todas las interfaces
     port: process.env.PORT ? parseInt(process.env.PORT) : 3000,
+    strictPort: false, // Permitir usar otro puerto si el especificado está ocupado
     proxy: {
       '/api/socket': {
         target: `${backendHttpProtocol}://${backendHost}:${backendPort}`,
