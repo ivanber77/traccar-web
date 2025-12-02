@@ -43,7 +43,13 @@ echo ""
 if grep -q "react-scripts" package.json 2>/dev/null; then
     npm start
 elif grep -q "vite" package.json 2>/dev/null; then
-    npm run dev
+    # Verificar si necesitamos sudo para el puerto 80
+    if [ "$(id -u)" -eq 0 ] || [ "$PORT" = "80" ]; then
+        echo "⚠️  Ejecutando en puerto 80 (requiere permisos de administrador)"
+        npm run dev
+    else
+        npm run dev
+    fi
 elif grep -q "webpack" package.json 2>/dev/null; then
     npm run serve || npm start
 else
