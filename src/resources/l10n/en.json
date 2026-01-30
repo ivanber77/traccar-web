@@ -202,6 +202,8 @@
     "loginRegister": "Register",
     "loginLogin": "Login",
     "loginOpenId": "Login with OpenID",
+    "loginGoogle": "Continue with Google",
+    "loginApple": "Continue with Apple",
     "loginFailed": "Incorrect email address or password",
     "loginCreated": "New user has been registered",
     "loginResetSuccess": "Check your email",
