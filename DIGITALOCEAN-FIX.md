@@ -6,8 +6,8 @@
 sh: 1: vite: not found
 ERROR failed health checks
 ```
-
 ## Causa
+
 
 El comando `vite` no se encuentra en el PATH durante la ejecución. Esto puede deberse a:
 

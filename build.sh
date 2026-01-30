@@ -45,3 +45,6 @@ echo ""
 echo "📋 Para desplegar, copia los archivos de $BUILD_DIR/ a /opt/traccar/web/ en el servidor"
 
 
+
+
+

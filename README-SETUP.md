@@ -56,3 +56,6 @@ VITE_API_URL=http://164.92.116.107:8082 npm start
 El frontend estará disponible en: http://localhost:3000
 
 
+
+
+

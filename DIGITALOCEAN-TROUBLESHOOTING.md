@@ -183,3 +183,6 @@ curl http://164.92.116.107:8082/api/server
 4. ✅ Verificar variables de entorno
 5. ✅ Verificar health check configuration
 
+
+
+

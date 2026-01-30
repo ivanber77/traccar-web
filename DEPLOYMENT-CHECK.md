@@ -97,3 +97,6 @@ Verifica que:
 4. ⬜ Configurar dominio (opcional)
 5. ⬜ Configurar HTTPS/SSL (recomendado para producción)
 
+
+
+
