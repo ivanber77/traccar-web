@@ -7,6 +7,9 @@ import fetchOrThrow from '../util/fetchOrThrow';
 
 export const nativeEnvironment = window.appInterface || (window.webkit && window.webkit.messageHandlers.appInterface);
 
+/** True only when running inside the Apple (iOS) app WebView, not in Android or browser */
+export const appleNativeEnvironment = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.appInterface);
+
 export const nativePostMessage = (message) => {
   if (window.webkit && window.webkit.messageHandlers.appInterface) {
     window.webkit.messageHandlers.appInterface.postMessage(message);

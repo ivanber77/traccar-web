@@ -17,7 +17,7 @@ import { useLocalization, useTranslation } from '../common/components/Localizati
 import LoginLayout from './LoginLayout';
 import usePersistedState from '../common/util/usePersistedState';
 import {
-  generateLoginToken, handleLoginTokenListeners, nativeEnvironment, nativePostMessage,
+  generateLoginToken, handleLoginTokenListeners, nativeEnvironment, appleNativeEnvironment, nativePostMessage,
 } from '../common/components/NativeInterface';
 import LogoImage from './LogoImage';
 import { useCatch } from '../reactHelper';
@@ -278,7 +278,7 @@ const LoginPage = () => {
             </Button>
           </>
         )}
-        {openIdEnabled && (
+        {openIdEnabled && !appleNativeEnvironment && (
           <>
             <Button
               onClick={() => handleOpenIdLogin('google-oauth2')}
