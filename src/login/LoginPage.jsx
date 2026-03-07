@@ -111,19 +111,19 @@ const LoginPage = () => {
   const [showServerTooltip, setShowServerTooltip] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
-  const registrationEnabled = useSelector((state) => state.session.server.registration);
+  const registrationEnabled = useSelector((state) => state.session.server?.registration);
   const languageEnabled = useSelector((state) => {
-    const attributes = state.session.server.attributes;
-    return !attributes.language && !attributes['ui.disableLoginLanguage'];
+    const attributes = state.session.server?.attributes;
+    return !attributes?.language && !attributes?.['ui.disableLoginLanguage'];
   });
-  const changeEnabled = useSelector((state) => !state.session.server.attributes.disableChange);
-  const emailEnabled = useSelector((state) => state.session.server.emailEnabled);
-  const openIdEnabled = useSelector((state) => state.session.server.openIdEnabled);
-  const openIdForced = useSelector((state) => state.session.server.openIdEnabled && state.session.server.openIdForce);
+  const changeEnabled = useSelector((state) => !state.session.server?.attributes?.disableChange);
+  const emailEnabled = useSelector((state) => state.session.server?.emailEnabled);
+  const openIdEnabled = useSelector((state) => state.session.server?.openIdEnabled === true || state.session.server?.openIdEnabled === 'true');
+  const openIdForced = useSelector((state) => state.session.server?.openIdEnabled && state.session.server?.openIdForce);
   const [codeEnabled, setCodeEnabled] = useState(false);
 
   const [announcementShown, setAnnouncementShown] = useState(false);
-  const announcement = useSelector((state) => state.session.server.announcement);
+  const announcement = useSelector((state) => state.session.server?.announcement);
 
   const handlePasswordLogin = async (event) => {
     event.preventDefault();
@@ -280,6 +280,7 @@ const LoginPage = () => {
         )}
         {openIdEnabled && !appleNativeEnvironment && (
           <>
+            <Box sx={{ textAlign: 'center', my: 1, color: 'text.secondary' }}>— o —</Box>
             <Button
               onClick={() => handleOpenIdLogin('google-oauth2')}
               className={classes.googleButton}
