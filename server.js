@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const BACKEND_URL = process.env.VITE_API_URL || process.env.API_URL || 'https://tracker.conecty.io';
+const BACKEND_URL = process.env.API_URL || process.env.VITE_API_URL || 'https://tracker.conecty.io';
 
 console.log(`🚀 Starting server on port ${PORT}`);
 console.log(`🔗 Backend URL: ${BACKEND_URL}`);
@@ -26,14 +26,14 @@ app.use('/api', createProxyMiddleware({
   },
   onError: (err, req, res) => {
     console.error('[PROXY ERROR]', err.message);
-    if (!res.headersSent) {
-      res.status(502).json({ 
-        error: 'Bad Gateway', 
+    if (res && typeof res.status === 'function' && !res.headersSent) {
+      res.status(502).json({
+        error: 'Bad Gateway',
         message: 'Unable to connect to backend server',
-        backend: BACKEND_URL
+        backend: BACKEND_URL,
       });
     }
-  }
+  },
 }));
 
 // Servir archivos estáticos desde build

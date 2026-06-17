@@ -14,6 +14,8 @@ import AppThemeProvider from './AppThemeProvider';
 
 preloadImages();
 
+document.querySelector('.loader')?.remove();
+
 const root = createRoot(document.getElementById('root'));
 root.render(
   <ErrorBoundary>

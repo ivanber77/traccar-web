@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
     outDir: 'build',
   },
   define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'https://tracker.conecty.io'),
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || ''),
   },
   plugins: [
     svgr(),
