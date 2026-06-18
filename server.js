@@ -38,10 +38,27 @@ app.use('/api', createProxyMiddleware({
 
 // Servir archivos estáticos desde build
 const buildPath = path.join(__dirname, 'build');
+
+// index.html, sw.js y manifest nunca deben cachearse — el browser los necesita frescos
+app.use((req, res, next) => {
+  const noCache = ['/index.html', '/sw.js', '/manifest.webmanifest', '/registerSW.js'];
+  if (noCache.includes(req.path) || req.path === '/') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
+// Assets con hash en el nombre → caché larga
 app.use(express.static(buildPath, {
-  maxAge: '1y',
+  setHeaders: (res, filePath) => {
+    if (filePath.includes('/assets/')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    }
+  },
   etag: true,
-  lastModified: true
+  lastModified: true,
 }));
 
 // Health check
