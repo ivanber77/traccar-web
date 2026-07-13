@@ -121,7 +121,6 @@ const ConectyRegisterPage = () => {
   const [vendor, setVendor] = useState(null);
   const [session, setSession] = useState(null);
   const [error, setError] = useState('');
-  const [emailExists, setEmailExists] = useState(false);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
 
@@ -182,9 +181,6 @@ const ConectyRegisterPage = () => {
   }, [smsResendCooldownSec]);
 
   const updateField = (name) => (event) => {
-    if (name === 'email') {
-      setEmailExists(false);
-    }
     setForm((prev) => ({ ...prev, [name]: event.target.value }));
   };
 
@@ -200,10 +196,28 @@ const ConectyRegisterPage = () => {
       : maskPhone(session?.phonenumber || form.phonenumber)
   );
 
+  const goToExistingLogin = ({ email: emailOverride } = {}) => {
+    const params = new URLSearchParams();
+    params.set('existing', '1');
+    const email = String(emailOverride || form.email).trim().toLowerCase();
+    if (email) {
+      params.set('email', email);
+    }
+    if (vendor?.market) {
+      params.set('market', vendor.market);
+    }
+    if (vendor?.vendor_id) {
+      params.set('vendor_id', vendor.vendor_id);
+    }
+    if (vendor?.slug) {
+      params.set('vendor_slug', vendor.slug);
+    }
+    navigate(`/login?${params.toString()}`, { replace: true });
+  };
+
   const handleSignup = async (event) => {
     event?.preventDefault?.();
     setError('');
-    setEmailExists(false);
     const firstname = form.firstname.trim();
     const lastname = form.lastname.trim();
     const email = form.email.trim().toLowerCase();
@@ -249,8 +263,7 @@ const ConectyRegisterPage = () => {
       const json = await response.json();
       if (!response.ok || !json.ok) {
         if (json.error === 'EMAIL_EXISTS') {
-          setEmailExists(true);
-          setError(t('loginConectyExistingHint'));
+          goToExistingLogin({ email });
           return;
         }
         const messages = {
@@ -259,7 +272,6 @@ const ConectyRegisterPage = () => {
         };
         throw new Error(messages[json.error] || 'No pudimos iniciar el registro.');
       }
-      setEmailExists(false);
       setSession(json);
       setStep(STEPS.VERIFY);
       setChannel(null);
@@ -274,25 +286,6 @@ const ConectyRegisterPage = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const goToExistingLogin = (event) => {
-    event?.preventDefault?.();
-    const params = new URLSearchParams();
-    params.set('existing', '1');
-    if (form.email.trim()) {
-      params.set('email', form.email.trim().toLowerCase());
-    }
-    if (vendor?.market) {
-      params.set('market', vendor.market);
-    }
-    if (vendor?.vendor_id) {
-      params.set('vendor_id', vendor.vendor_id);
-    }
-    if (vendor?.slug) {
-      params.set('vendor_slug', vendor.slug);
-    }
-    navigate(`/login?${params.toString()}`);
   };
 
   const handleSendCode = async ({ isResend = false, activeChannel } = {}) => {
@@ -415,18 +408,7 @@ const ConectyRegisterPage = () => {
           </Typography>
         </div>
 
-        {error && (
-          <Alert
-            severity={emailExists ? 'info' : 'error'}
-            action={emailExists ? (
-              <Button color="inherit" size="small" onClick={goToExistingLogin}>
-                {t('loginSignInExisting')}
-              </Button>
-            ) : undefined}
-          >
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity="error">{error}</Alert>}
         {status && !error && <Alert severity="info">{status}</Alert>}
 
         {step === STEPS.VENDOR && (
@@ -470,16 +452,6 @@ const ConectyRegisterPage = () => {
         {step === STEPS.FORM && (
           <div className={classes.container}>
             <Button type="button" size="small" onClick={() => setStep(STEPS.VENDOR)}>Cambiar región</Button>
-            {emailExists && (
-              <Button
-                type="button"
-                variant="contained"
-                color="secondary"
-                onClick={goToExistingLogin}
-              >
-                {t('loginSignInExisting')}
-              </Button>
-            )}
             <TextField required label="Nombre" value={form.firstname} onChange={updateField('firstname')} autoComplete="given-name" />
             <TextField required label="Apellido" value={form.lastname} onChange={updateField('lastname')} autoComplete="family-name" />
             <TextField required type="email" label={t('userEmail')} value={form.email} onChange={updateField('email')} autoComplete="email" />
