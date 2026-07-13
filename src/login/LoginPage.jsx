@@ -23,7 +23,7 @@ import LogoImage from './LogoImage';
 import { useCatch } from '../reactHelper';
 import QrCodeDialog from '../common/components/QrCodeDialog';
 import fetchOrThrow from '../common/util/fetchOrThrow';
-import { buildConectyOidcAuthorizeUrl, buildConectyRegisterUrl, isEmailRoutingEnabled } from './conectyAuthRouting';
+import { buildConectyOidcAuthorizeUrl, isEmailRoutingEnabled } from './conectyAuthRouting';
 
 const useStyles = makeStyles()((theme) => ({
   options: {
@@ -158,9 +158,13 @@ const LoginPage = () => {
 
   const goToConectyRegister = (event) => {
     event?.preventDefault?.();
-    const returnTo = `${window.location.origin}/login`;
-    // Misma ventana: en la app (WebView) target=_blank / window.open salen al navegador del sistema.
-    window.location.assign(buildConectyRegisterUrl('ar', returnTo, email.trim()));
+    // Misma origen: en la app, ir a conecty.com.ar abre navegador externo.
+    const params = new URLSearchParams();
+    if (email.trim()) {
+      params.set('email', email.trim());
+    }
+    const query = params.toString();
+    navigate(`/conecty-register${query ? `?${query}` : ''}`);
   };
 
   const handleEmailContinue = async (event) => {

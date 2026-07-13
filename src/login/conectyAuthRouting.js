@@ -6,7 +6,7 @@ export const CONECTY_OIDC_HOSTS = {
   uy: import.meta.env.VITE_CONECTY_OIDC_HOST_UY || 'https://conecty.com.uy',
 };
 
-function resolveOidcHost(market) {
+export function resolveOidcHost(market) {
   const key = market === 'uy' ? 'uy' : 'ar';
   if (typeof window !== 'undefined') {
     const { hostname } = window.location;
