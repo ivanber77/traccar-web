@@ -50,7 +50,8 @@ const LoginLayout = ({ children }) => {
         {!useMediaQuery(theme.breakpoints.down('lg')) && <LogoImage color="#ffffff" />}
       </div>
       <Paper className={classes.paper}>
-        <form className={classes.form}>
+        {/* preventDefault: sin onSubmit propio un submit nativo recarga la página. */}
+        <form className={classes.form} onSubmit={(event) => event.preventDefault()}>
           {children}
         </form>
       </Paper>

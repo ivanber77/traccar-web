@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Box, Button, IconButton, MenuItem, TextField, Typography, Alert,
+  Button, IconButton, MenuItem, TextField, Typography, Alert,
 } from '@mui/material';
 import { makeStyles } from 'tss-react/mui';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -8,9 +8,10 @@ import LoginLayout from './LoginLayout';
 import BackIcon from '../common/components/BackIcon';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import { resolveOidcHost } from './conectyAuthRouting';
+import E164PhoneField, { validateE164Phone } from './E164PhoneField';
 
 /** Conecty-web usa trailingSlash: true → sin `/` final Vercel responde 308 y el JSON falla. */
-export function conectyApiUrl(path, market = 'ar') {
+function conectyApiUrl(path, market = 'ar') {
   const base = resolveOidcHost(market).replace(/\/$/, '');
   const normalized = path.startsWith('/') ? path : `/${path}`;
   const withSlash = normalized.endsWith('/') ? normalized : `${normalized}/`;
@@ -110,7 +111,7 @@ const ConectyRegisterPage = () => {
   };
 
   const handleSignup = async (event) => {
-    event.preventDefault();
+    event?.preventDefault?.();
     setError('');
     const firstname = form.firstname.trim();
     const lastname = form.lastname.trim();
@@ -124,6 +125,10 @@ const ConectyRegisterPage = () => {
     }
     if (!firstname || !lastname || !email || !phonenumber) {
       setError('Completá todos los campos obligatorios.');
+      return;
+    }
+    if (!validateE164Phone(phonenumber).valid) {
+      setError(validateE164Phone(phonenumber).message);
       return;
     }
     if (password.length < 8) {
@@ -201,7 +206,7 @@ const ConectyRegisterPage = () => {
   };
 
   const handleVerify = async (event) => {
-    event.preventDefault();
+    event?.preventDefault?.();
     if (!session?.verificationId || !code.trim()) return;
     setError('');
     setLoading(true);
@@ -252,7 +257,7 @@ const ConectyRegisterPage = () => {
         {status && !error && <Alert severity="info">{status}</Alert>}
 
         {step === STEPS.VENDOR && (
-          <>
+          <div className={classes.container}>
             <Typography variant="body2">Seleccioná tu región</Typography>
             {vendorsLoading && <Typography variant="body2">Cargando...</Typography>}
             {!vendorsLoading && vendors.map((item) => {
@@ -264,15 +269,20 @@ const ConectyRegisterPage = () => {
               return (
                 <Button
                   key={key}
+                  type="button"
                   variant={selected ? 'contained' : 'outlined'}
                   color="secondary"
-                  onClick={() => setVendor(item)}
+                  onClick={() => {
+                    setVendor(item);
+                    setForm((prev) => ({ ...prev, phonenumber: '' }));
+                  }}
                 >
                   {item.displayTitle || item.marketName || item.label}
                 </Button>
               );
             })}
             <Button
+              type="button"
               variant="contained"
               color="secondary"
               disabled={!vendor}
@@ -280,34 +290,34 @@ const ConectyRegisterPage = () => {
             >
               Continuar
             </Button>
-          </>
+          </div>
         )}
 
+        {/* No anidar <form>: LoginLayout ya envuelve en form; HTML ignora forms anidados y el submit recarga → vuelve al paso región. */}
         {step === STEPS.FORM && (
-          <Box component="form" className={classes.container} onSubmit={handleSignup}>
-            <Button size="small" onClick={() => setStep(STEPS.VENDOR)}>Cambiar región</Button>
+          <div className={classes.container}>
+            <Button type="button" size="small" onClick={() => setStep(STEPS.VENDOR)}>Cambiar región</Button>
             <TextField required label="Nombre" value={form.firstname} onChange={updateField('firstname')} autoComplete="given-name" />
             <TextField required label="Apellido" value={form.lastname} onChange={updateField('lastname')} autoComplete="family-name" />
             <TextField required type="email" label={t('userEmail')} value={form.email} onChange={updateField('email')} autoComplete="email" />
-            <TextField
+            <E164PhoneField
               required
               label="Teléfono"
               value={form.phonenumber}
-              onChange={updateField('phonenumber')}
-              placeholder="+54911..."
-              helperText="Formato internacional con +"
-              autoComplete="tel"
+              onChange={(value) => setForm((prev) => ({ ...prev, phonenumber: value }))}
+              marketId={vendor?.market}
+              defaultCountryCode={vendor?.country}
             />
             <TextField required type="password" label={t('userPassword')} value={form.password} onChange={updateField('password')} autoComplete="new-password" />
             <TextField required type="password" label="Confirmar contraseña" value={form.passwordConfirm} onChange={updateField('passwordConfirm')} autoComplete="new-password" />
-            <Button type="submit" variant="contained" color="secondary" disabled={loading}>
+            <Button type="button" variant="contained" color="secondary" disabled={loading} onClick={handleSignup}>
               {loading ? 'Enviando...' : 'Continuar'}
             </Button>
-          </Box>
+          </div>
         )}
 
         {step === STEPS.VERIFY && (
-          <Box component="form" className={classes.container} onSubmit={handleVerify}>
+          <div className={classes.container}>
             <Typography variant="body2">Verificá tu cuenta para terminar el registro.</Typography>
             <TextField
               select
@@ -321,7 +331,7 @@ const ConectyRegisterPage = () => {
               <MenuItem value="email">Email</MenuItem>
               <MenuItem value="phone">SMS</MenuItem>
             </TextField>
-            <Button variant="outlined" color="secondary" disabled={loading} onClick={handleSendCode}>
+            <Button type="button" variant="outlined" color="secondary" disabled={loading} onClick={handleSendCode}>
               {codeSent ? 'Reenviar código' : 'Enviar código'}
             </Button>
             <TextField
@@ -331,11 +341,17 @@ const ConectyRegisterPage = () => {
               onChange={(e) => setCode(e.target.value)}
               inputProps={{ inputMode: 'numeric' }}
             />
-            <Button type="submit" variant="contained" color="secondary" disabled={loading || !codeSent || !code.trim()}>
+            <Button
+              type="button"
+              variant="contained"
+              color="secondary"
+              disabled={loading || !codeSent || !code.trim()}
+              onClick={handleVerify}
+            >
               {loading ? 'Verificando...' : 'Crear cuenta'}
             </Button>
-            <Button onClick={() => setStep(STEPS.FORM)}>Volver</Button>
-          </Box>
+            <Button type="button" onClick={() => setStep(STEPS.FORM)}>Volver</Button>
+          </div>
         )}
       </div>
     </LoginLayout>
