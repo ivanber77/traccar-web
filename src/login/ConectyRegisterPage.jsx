@@ -9,16 +9,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginLayout from './LoginLayout';
 import BackIcon from '../common/components/BackIcon';
 import { useTranslation } from '../common/components/LocalizationProvider';
-import { resolveOidcHost } from './conectyAuthRouting';
+import { conectyApiUrl } from './conectyAuthRouting';
 import E164PhoneField, { validateE164Phone } from './E164PhoneField';
-
-/** Conecty-web usa trailingSlash: true → sin `/` final Vercel responde 308 y el JSON falla. */
-function conectyApiUrl(path, market = 'ar') {
-  const base = resolveOidcHost(market).replace(/\/$/, '');
-  const normalized = path.startsWith('/') ? path : `/${path}`;
-  const withSlash = normalized.endsWith('/') ? normalized : `${normalized}/`;
-  return `${base}${withSlash}`;
-}
 
 function maskEmail(email) {
   const [local, domain] = String(email || '').split('@');

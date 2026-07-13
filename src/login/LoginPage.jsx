@@ -23,7 +23,7 @@ import LogoImage from './LogoImage';
 import { useCatch } from '../reactHelper';
 import QrCodeDialog from '../common/components/QrCodeDialog';
 import fetchOrThrow from '../common/util/fetchOrThrow';
-import { buildConectyOidcAuthorizeUrl, isEmailRoutingEnabled } from './conectyAuthRouting';
+import { buildConectyOidcAuthorizeUrl, conectyApiUrl, isEmailRoutingEnabled } from './conectyAuthRouting';
 
 const useStyles = makeStyles()((theme) => ({
   options: {
@@ -109,6 +109,8 @@ const LoginPage = () => {
   const [routeError, setRouteError] = useState('');
   const [routeLoading, setRouteLoading] = useState(false);
   const [loginStep, setLoginStep] = useState(emailRouting ? 'email' : 'password');
+  /** Si auth-route devolvió oidc: login WHMCS in-app (ValidateLogin + handoff), sin redirect. */
+  const [conectyRoute, setConectyRoute] = useState(null);
 
   const [email, setEmail] = usePersistedState('loginEmail', '');
   const [password, setPassword] = useState('');
@@ -154,6 +156,7 @@ const LoginPage = () => {
     setPassword('');
     setCode('');
     setCodeEnabled(false);
+    setConectyRoute(null);
   };
 
   const goToConectyRegister = (event) => {
@@ -181,6 +184,7 @@ const LoginPage = () => {
       const response = await fetch(`/api/session/auth-route?email=${encodeURIComponent(normalizedEmail)}`);
       if (response.status === 404) {
         setLoginStep('not_found');
+        setConectyRoute(null);
         return;
       }
       if (!response.ok) {
@@ -188,10 +192,16 @@ const LoginPage = () => {
       }
       const data = await response.json();
       if (data.route === 'oidc') {
-        const market = data.market || 'ar';
-        window.location.assign(buildConectyOidcAuthorizeUrl(market, normalizedEmail));
+        // Misma origen: password + ValidateLogin API. No redirect a WHMCS/OpenID.
+        setConectyRoute({
+          market: data.market || 'ar',
+          vendor_id: data.vendor_id || null,
+          vendor_slug: data.vendor_slug || null,
+        });
+        setLoginStep('password');
         return;
       }
+      setConectyRoute(null);
       setLoginStep('password');
     } catch {
       setRouteError(t('loginRouteFailed'));
@@ -200,8 +210,52 @@ const LoginPage = () => {
     }
   };
 
+  const handleConectyPasswordLogin = async () => {
+    setFailed(false);
+    setRouteError('');
+    setRouteLoading(true);
+    try {
+      const response = await fetch(conectyApiUrl('/api/cotrack/login', conectyRoute?.market || 'ar'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          market: conectyRoute?.market || 'ar',
+          vendor_id: conectyRoute?.vendor_id || undefined,
+          vendor_slug: conectyRoute?.vendor_slug || undefined,
+        }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || !json.ok) {
+        if (json.error === 'TWO_FACTOR_REQUIRED') {
+          // Fallback: 2FA se maneja en el login WHMCS (browser).
+          window.location.assign(
+            buildConectyOidcAuthorizeUrl(conectyRoute?.market || 'ar', email.trim()),
+          );
+          return;
+        }
+        throw new Error(json.error || 'login_failed');
+      }
+      if (json.handoffUrl) {
+        window.location.assign(json.handoffUrl);
+        return;
+      }
+      throw new Error('missing_handoff');
+    } catch {
+      setFailed(true);
+      setPassword('');
+    } finally {
+      setRouteLoading(false);
+    }
+  };
+
   const handlePasswordLogin = async (event) => {
     event.preventDefault();
+    if (conectyRoute) {
+      await handleConectyPasswordLogin();
+      return;
+    }
     setFailed(false);
     try {
       const query = `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
@@ -476,9 +530,9 @@ const LoginPage = () => {
               type="submit"
               variant="contained"
               color="secondary"
-              disabled={!email || !password || (codeEnabled && !code)}
+              disabled={!email || !password || routeLoading || (codeEnabled && !code)}
             >
-              {t('loginLogin')}
+              {routeLoading ? t('loginContinue') : t('loginLogin')}
             </Button>
             <div className={classes.extraContainer}>
               {emailEnabled && (

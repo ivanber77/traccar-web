@@ -18,6 +18,14 @@ export function resolveOidcHost(market) {
   return CONECTY_OIDC_HOSTS[key];
 }
 
+/** Conecty-web usa trailingSlash: true → sin `/` final Vercel responde 308 y el JSON falla. */
+export function conectyApiUrl(path, market = 'ar') {
+  const base = resolveOidcHost(market).replace(/\/$/, '');
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const withSlash = normalized.endsWith('/') ? normalized : `${normalized}/`;
+  return `${base}${withSlash}`;
+}
+
 export const CONECTY_HANDOFF_PATH = '/auth/cotrack/handoff';
 export const CONECTY_REGISTER_PATH = '/cotrack/registro';
 
