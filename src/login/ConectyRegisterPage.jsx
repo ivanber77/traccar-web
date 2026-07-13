@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Box, Button, IconButton, MenuItem, TextField, Typography, Alert,
 } from '@mui/material';
@@ -8,6 +8,14 @@ import LoginLayout from './LoginLayout';
 import BackIcon from '../common/components/BackIcon';
 import { useTranslation } from '../common/components/LocalizationProvider';
 import { resolveOidcHost } from './conectyAuthRouting';
+
+/** Conecty-web usa trailingSlash: true → sin `/` final Vercel responde 308 y el JSON falla. */
+export function conectyApiUrl(path, market = 'ar') {
+  const base = resolveOidcHost(market).replace(/\/$/, '');
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  const withSlash = normalized.endsWith('/') ? normalized : `${normalized}/`;
+  return `${base}${withSlash}`;
+}
 
 const useStyles = makeStyles()((theme) => ({
   container: {
@@ -42,7 +50,6 @@ const ConectyRegisterPage = () => {
   const navigate = useNavigate();
   const t = useTranslation();
   const [searchParams] = useSearchParams();
-  const apiBase = useMemo(() => resolveOidcHost('ar').replace(/\/$/, ''), []);
 
   const [step, setStep] = useState(STEPS.VENDOR);
   const [vendors, setVendors] = useState([]);
@@ -71,7 +78,7 @@ const ConectyRegisterPage = () => {
       setVendorsLoading(true);
       setError('');
       try {
-        const response = await fetch(`${apiBase}/api/cotrack/vendors`);
+        const response = await fetch(conectyApiUrl('/api/cotrack/vendors'));
         const json = await response.json();
         if (!response.ok || !json.ok) {
           throw new Error(json.error || 'LOAD_FAILED');
@@ -96,7 +103,7 @@ const ConectyRegisterPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [apiBase]);
+  }, []);
 
   const updateField = (name) => (event) => {
     setForm((prev) => ({ ...prev, [name]: event.target.value }));
@@ -130,7 +137,7 @@ const ConectyRegisterPage = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${apiBase}/api/cotrack/signup`, {
+      const response = await fetch(conectyApiUrl('/api/cotrack/signup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -170,7 +177,7 @@ const ConectyRegisterPage = () => {
       const destination = channel === 'email'
         ? String(session.email || form.email).trim().toLowerCase()
         : String(session.phonenumber || form.phonenumber).trim();
-      const response = await fetch(`${apiBase}/api/cotrack/verification/send`, {
+      const response = await fetch(conectyApiUrl('/api/cotrack/verification/send'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -202,7 +209,7 @@ const ConectyRegisterPage = () => {
       const destination = channel === 'email'
         ? String(session.email || form.email).trim().toLowerCase()
         : String(session.phonenumber || form.phonenumber).trim();
-      const response = await fetch(`${apiBase}/api/cotrack/verification/verify`, {
+      const response = await fetch(conectyApiUrl('/api/cotrack/verification/verify'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
