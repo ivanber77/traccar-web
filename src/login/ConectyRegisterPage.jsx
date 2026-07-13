@@ -452,14 +452,14 @@ const ConectyRegisterPage = () => {
         {step === STEPS.VERIFY && (
           <div className={classes.container}>
             <Typography variant="body2" className={classes.hint}>
-              ¿Algún dato no es correcto? Podés corregirlo antes de verificar.
+              Para crear tu cuenta necesitamos validar tus datos. Si algo no está bien, podés corregirlo antes de continuar.
             </Typography>
             <Button type="button" size="small" onClick={() => setStep(STEPS.FORM)}>
               Volver al formulario
             </Button>
 
             <Typography className={classes.sectionLabel}>
-              ¿Cómo querés recibir el código?
+              ¿Cómo preferís recibir el código?
             </Typography>
 
             <label
