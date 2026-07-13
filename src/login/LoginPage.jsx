@@ -111,6 +111,10 @@ const LoginPage = () => {
   const [loginStep, setLoginStep] = useState(emailRouting ? 'email' : 'password');
   /** Si auth-route devolvió oidc: login WHMCS in-app (ValidateLogin + handoff), sin redirect. */
   const [conectyRoute, setConectyRoute] = useState(null);
+  /** Cuenta encontrada en Conecty/WHMCS (sin usuario Cotrack o pivote desde registro). */
+  const [conectyExistingHint, setConectyExistingHint] = useState(false);
+  const [passwordEmailStatus, setPasswordEmailStatus] = useState('');
+  const [passwordEmailLoading, setPasswordEmailLoading] = useState(false);
 
   const [email, setEmail] = usePersistedState('loginEmail', '');
   const [password, setPassword] = useState('');
@@ -140,10 +144,33 @@ const LoginPage = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    let dirty = false;
+
     const handoffError = params.get('cotrack_error');
     if (handoffError) {
       setRouteError(handoffError);
       params.delete('cotrack_error');
+      dirty = true;
+    }
+
+    // Pivote desde registro: email ya existe en Conecty → password + handoff.
+    if (emailRouting && params.get('existing') === '1') {
+      const hintEmail = (params.get('email') || '').trim();
+      if (hintEmail) {
+        setEmail(hintEmail);
+      }
+      setConectyRoute({
+        market: params.get('market') || 'ar',
+        vendor_id: params.get('vendor_id') || null,
+        vendor_slug: params.get('vendor_slug') || null,
+      });
+      setConectyExistingHint(true);
+      setLoginStep('password');
+      ['existing', 'market', 'vendor_id', 'vendor_slug'].forEach((key) => params.delete(key));
+      dirty = true;
+    }
+
+    if (dirty) {
       const next = `${window.location.pathname}${params.toString() ? `?${params}` : ''}`;
       window.history.replaceState({}, '', next);
     }
@@ -157,6 +184,8 @@ const LoginPage = () => {
     setCode('');
     setCodeEnabled(false);
     setConectyRoute(null);
+    setConectyExistingHint(false);
+    setPasswordEmailStatus('');
   };
 
   const goToConectyRegister = (event) => {
@@ -174,6 +203,8 @@ const LoginPage = () => {
     event.preventDefault();
     setRouteError('');
     setFailed(false);
+    setConectyExistingHint(false);
+    setPasswordEmailStatus('');
     const normalizedEmail = email.trim();
     if (!normalizedEmail) {
       return;
@@ -183,6 +214,27 @@ const LoginPage = () => {
     try {
       const response = await fetch(`/api/session/auth-route?email=${encodeURIComponent(normalizedEmail)}`);
       if (response.status === 404) {
+        // Sin usuario Cotrack: ¿ya tiene cuenta Conecty/WHMCS?
+        try {
+          const lookupResponse = await fetch(conectyApiUrl('/api/cotrack/account-lookup'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: normalizedEmail.toLowerCase() }),
+          });
+          const lookup = await lookupResponse.json().catch(() => ({}));
+          if (lookupResponse.ok && lookup.ok && lookup.exists) {
+            setConectyRoute({
+              market: lookup.market || 'ar',
+              vendor_id: lookup.vendor_id || null,
+              vendor_slug: lookup.vendor_slug || null,
+            });
+            setConectyExistingHint(true);
+            setLoginStep('password');
+            return;
+          }
+        } catch {
+          // Fail-open: si el lookup falla, seguimos con "crear cuenta".
+        }
         setLoginStep('not_found');
         setConectyRoute(null);
         return;
@@ -207,6 +259,36 @@ const LoginPage = () => {
       setRouteError(t('loginRouteFailed'));
     } finally {
       setRouteLoading(false);
+    }
+  };
+
+  const handleRequestConectyPasswordEmail = async (event) => {
+    event?.preventDefault?.();
+    if (!email.trim() || passwordEmailLoading) {
+      return;
+    }
+    setPasswordEmailStatus('');
+    setPasswordEmailLoading(true);
+    try {
+      const response = await fetch(conectyApiUrl('/api/cotrack/request-password-email', conectyRoute?.market || 'ar'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          market: conectyRoute?.market || undefined,
+          vendor_id: conectyRoute?.vendor_id || undefined,
+          vendor_slug: conectyRoute?.vendor_slug || undefined,
+        }),
+      });
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok || !json.ok) {
+        throw new Error(json.error || 'request_failed');
+      }
+      setPasswordEmailStatus(t('loginConectyPasswordEmailSent'));
+    } catch {
+      setPasswordEmailStatus(t('loginConectyPasswordEmailFailed'));
+    } finally {
+      setPasswordEmailLoading(false);
     }
   };
 
@@ -472,6 +554,30 @@ const LoginPage = () => {
                 >
                   {t('loginChangeEmail')}
                 </Link>
+                {conectyExistingHint && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ color: 'text.secondary', typography: 'body2' }}>
+                      {t('loginConectyExistingHint')}
+                    </Box>
+                    <Box sx={{ color: 'text.secondary', typography: 'caption' }}>
+                      {t('loginConectyNoPasswordHint')}
+                    </Box>
+                    <Link
+                      onClick={handleRequestConectyPasswordEmail}
+                      className={classes.link}
+                      underline="none"
+                      variant="caption"
+                      sx={{ pointerEvents: passwordEmailLoading ? 'none' : 'auto', opacity: passwordEmailLoading ? 0.6 : 1 }}
+                    >
+                      {passwordEmailLoading ? t('loginContinue') : t('loginConectyCreatePassword')}
+                    </Link>
+                    {passwordEmailStatus && (
+                      <Box sx={{ color: 'text.secondary', typography: 'caption' }}>
+                        {passwordEmailStatus}
+                      </Box>
+                    )}
+                  </Box>
+                )}
               </>
             )}
             {!emailRouting && (
