@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
-  Button, IconButton, MenuItem, TextField, Typography, Alert,
+  Button, IconButton, TextField, Typography, Alert,
 } from '@mui/material';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import SmartphoneIcon from '@mui/icons-material/Smartphone';
 import { makeStyles } from 'tss-react/mui';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import LoginLayout from './LoginLayout';
@@ -18,6 +20,20 @@ function conectyApiUrl(path, market = 'ar') {
   return `${base}${withSlash}`;
 }
 
+function maskEmail(email) {
+  const [local, domain] = String(email || '').split('@');
+  if (!domain) return email || '';
+  return `${local.slice(0, 1)}***@${domain}`;
+}
+
+function maskPhone(phone) {
+  const digits = String(phone || '').replace(/\s/g, '');
+  if (digits.length < 6) return phone || '';
+  return `${digits.slice(0, 3)} *** ***-${digits.slice(-4)}`;
+}
+
+const SMS_RESEND_COOLDOWN_SEC = 60;
+
 const useStyles = makeStyles()((theme) => ({
   container: {
     display: 'flex',
@@ -32,6 +48,61 @@ const useStyles = makeStyles()((theme) => ({
     fontSize: theme.spacing(3),
     fontWeight: 500,
     marginLeft: theme.spacing(1),
+  },
+  hint: {
+    color: theme.palette.text.secondary,
+  },
+  sectionLabel: {
+    fontWeight: 600,
+    fontSize: '0.875rem',
+  },
+  pathOption: {
+    display: 'block',
+    padding: theme.spacing(1.75, 2),
+    border: `1.5px solid ${theme.palette.divider}`,
+    borderRadius: 12,
+    cursor: 'pointer',
+    transition: 'border-color 0.15s ease, background 0.15s ease',
+    '&:hover': {
+      borderColor: theme.palette.secondary.light,
+    },
+  },
+  pathOptionSelected: {
+    borderColor: theme.palette.secondary.main,
+    backgroundColor: theme.palette.mode === 'dark'
+      ? 'rgba(255,255,255,0.06)'
+      : 'rgba(153, 246, 2, 0.08)',
+  },
+  pathOptionDisabled: {
+    opacity: 0.6,
+    pointerEvents: 'none',
+  },
+  pathRadio: {
+    position: 'absolute',
+    opacity: 0,
+    pointerEvents: 'none',
+  },
+  pathTitle: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    fontWeight: 600,
+    fontSize: '0.9375rem',
+    marginBottom: 4,
+  },
+  pathDesc: {
+    margin: 0,
+    fontSize: '0.8125rem',
+    color: theme.palette.text.secondary,
+    lineHeight: 1.4,
+  },
+  otpInput: {
+    '& input': {
+      textAlign: 'center',
+      fontSize: '1.375rem',
+      fontWeight: 600,
+      letterSpacing: '0.35em',
+    },
   },
 }));
 
@@ -70,8 +141,11 @@ const ConectyRegisterPage = () => {
     passwordConfirm: '',
   });
   const [code, setCode] = useState('');
-  const [channel, setChannel] = useState('email');
+  const [channel, setChannel] = useState(null);
   const [codeSent, setCodeSent] = useState(false);
+  const [resentNotice, setResentNotice] = useState(false);
+  const [smsResendCooldownSec, setSmsResendCooldownSec] = useState(0);
+  const [devCode, setDevCode] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -106,9 +180,29 @@ const ConectyRegisterPage = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (smsResendCooldownSec <= 0) return undefined;
+    const timer = window.setInterval(() => {
+      setSmsResendCooldownSec((prev) => (prev <= 1 ? 0 : prev - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [smsResendCooldownSec]);
+
   const updateField = (name) => (event) => {
     setForm((prev) => ({ ...prev, [name]: event.target.value }));
   };
+
+  const resolveDestination = (activeChannel) => (
+    activeChannel === 'email'
+      ? String(session?.email || form.email).trim().toLowerCase()
+      : String(session?.phonenumber || form.phonenumber).trim()
+  );
+
+  const resolveMaskedDestination = (activeChannel) => (
+    activeChannel === 'email'
+      ? maskEmail(session?.email || form.email)
+      : maskPhone(session?.phonenumber || form.phonenumber)
+  );
 
   const handleSignup = async (event) => {
     event?.preventDefault?.();
@@ -166,7 +260,13 @@ const ConectyRegisterPage = () => {
       }
       setSession(json);
       setStep(STEPS.VERIFY);
+      setChannel(null);
+      setCode('');
       setCodeSent(false);
+      setResentNotice(false);
+      setSmsResendCooldownSec(0);
+      setDevCode('');
+      setStatus('');
     } catch (err) {
       setError(err.message || 'Error de conexión.');
     } finally {
@@ -174,30 +274,41 @@ const ConectyRegisterPage = () => {
     }
   };
 
-  const handleSendCode = async () => {
-    if (!session?.verificationId || !channel) return;
+  const handleSendCode = async ({ isResend = false, activeChannel } = {}) => {
+    const sendChannel = activeChannel || channel;
+    if (!session?.verificationId || !sendChannel) return;
     setError('');
+    setResentNotice(false);
     setLoading(true);
     try {
-      const destination = channel === 'email'
-        ? String(session.email || form.email).trim().toLowerCase()
-        : String(session.phonenumber || form.phonenumber).trim();
       const response = await fetch(conectyApiUrl('/api/cotrack/verification/send'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           verificationId: session.verificationId,
-          channel,
-          destination,
-          resend: codeSent,
+          channel: sendChannel,
+          destination: resolveDestination(sendChannel),
+          resend: isResend,
         }),
       });
       const json = await response.json();
       if (!response.ok || !json.ok) {
+        if (json.error === 'SMS_RESEND_COOLDOWN' && json.retryAfterSec) {
+          setSmsResendCooldownSec(json.retryAfterSec);
+          throw new Error(`Podés reenviar el SMS en ${json.retryAfterSec} s.`);
+        }
         throw new Error(json.error || 'No pudimos enviar el código.');
       }
       setCodeSent(true);
-      setStatus('Código enviado. Revisá tu bandeja o mensajes.');
+      setDevCode(json.devCode || '');
+      if (sendChannel === 'phone') {
+        setSmsResendCooldownSec(SMS_RESEND_COOLDOWN_SEC);
+      }
+      if (isResend) {
+        setCode('');
+        setResentNotice(true);
+      }
+      setStatus('');
     } catch (err) {
       setError(err.message || 'No pudimos enviar el código.');
     } finally {
@@ -205,22 +316,36 @@ const ConectyRegisterPage = () => {
     }
   };
 
+  const handleSelectChannel = async (nextChannel) => {
+    if (nextChannel === channel || loading) return;
+    setChannel(nextChannel);
+    setCode('');
+    setDevCode('');
+    setError('');
+    setResentNotice(false);
+    setCodeSent(false);
+    setSmsResendCooldownSec(0);
+    setStatus('');
+    await handleSendCode({ activeChannel: nextChannel });
+  };
+
   const handleVerify = async (event) => {
     event?.preventDefault?.();
-    if (!session?.verificationId || !code.trim()) return;
+    if (!session?.verificationId || !channel) return;
+    if (!/^\d{6}$/.test(code.trim())) {
+      setError('Ingresá un código de 6 dígitos.');
+      return;
+    }
     setError('');
     setLoading(true);
     try {
-      const destination = channel === 'email'
-        ? String(session.email || form.email).trim().toLowerCase()
-        : String(session.phonenumber || form.phonenumber).trim();
       const response = await fetch(conectyApiUrl('/api/cotrack/verification/verify'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           verificationId: session.verificationId,
           channel,
-          destination,
+          destination: resolveDestination(channel),
           code: code.trim(),
         }),
       });
@@ -240,6 +365,22 @@ const ConectyRegisterPage = () => {
       setLoading(false);
     }
   };
+
+  const maskedDestination = channel ? resolveMaskedDestination(channel) : '';
+  const smsResendBlocked = channel === 'phone' && smsResendCooldownSec > 0;
+  const destinationHint = loading && channel && !codeSent
+    ? `Enviando un código a ${maskedDestination}…`
+    : resentNotice
+      ? `Te enviamos un código nuevo a ${maskedDestination}.`
+      : codeSent
+        ? `Enviamos un código a ${maskedDestination}.`
+        : '';
+  const resendLabel = smsResendBlocked
+    ? `Reenviar SMS en ${smsResendCooldownSec} s`
+    : loading
+      ? 'Enviando...'
+      : 'Reenviar código';
+
 
   return (
     <LoginLayout>
@@ -318,41 +459,116 @@ const ConectyRegisterPage = () => {
 
         {step === STEPS.VERIFY && (
           <div className={classes.container}>
-            <Typography variant="body2">Verificá tu cuenta para terminar el registro.</Typography>
-            <TextField
-              select
-              label="Canal"
-              value={channel}
-              onChange={(e) => {
-                setChannel(e.target.value);
-                setCodeSent(false);
-              }}
-            >
-              <MenuItem value="email">Email</MenuItem>
-              <MenuItem value="phone">SMS</MenuItem>
-            </TextField>
-            <Button type="button" variant="outlined" color="secondary" disabled={loading} onClick={handleSendCode}>
-              {codeSent ? 'Reenviar código' : 'Enviar código'}
+            <Typography variant="body2" className={classes.hint}>
+              ¿Algún dato no es correcto? Podés corregirlo antes de verificar.
+            </Typography>
+            <Button type="button" size="small" onClick={() => setStep(STEPS.FORM)}>
+              Volver al formulario
             </Button>
-            <TextField
-              required
-              label="Código"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              inputProps={{ inputMode: 'numeric' }}
-            />
-            <Button
-              type="button"
-              variant="contained"
-              color="secondary"
-              disabled={loading || !codeSent || !code.trim()}
-              onClick={handleVerify}
+
+            <Typography className={classes.sectionLabel}>
+              ¿Cómo querés recibir el código?
+            </Typography>
+
+            <label
+              className={[
+                classes.pathOption,
+                channel === 'email' ? classes.pathOptionSelected : '',
+                loading ? classes.pathOptionDisabled : '',
+              ].filter(Boolean).join(' ')}
             >
-              {loading ? 'Verificando...' : 'Crear cuenta'}
-            </Button>
-            <Button type="button" onClick={() => setStep(STEPS.FORM)}>Volver</Button>
+              <input
+                className={classes.pathRadio}
+                type="radio"
+                name="verifyChannel"
+                value="email"
+                checked={channel === 'email'}
+                disabled={loading}
+                onChange={() => handleSelectChannel('email')}
+              />
+              <div className={classes.pathTitle}>
+                <MailOutlineIcon fontSize="small" />
+                Por email
+              </div>
+              <p className={classes.pathDesc}>{maskEmail(session?.email || form.email)}</p>
+            </label>
+
+            <label
+              className={[
+                classes.pathOption,
+                channel === 'phone' ? classes.pathOptionSelected : '',
+                loading ? classes.pathOptionDisabled : '',
+              ].filter(Boolean).join(' ')}
+            >
+              <input
+                className={classes.pathRadio}
+                type="radio"
+                name="verifyChannel"
+                value="phone"
+                checked={channel === 'phone'}
+                disabled={loading}
+                onChange={() => handleSelectChannel('phone')}
+              />
+              <div className={classes.pathTitle}>
+                <SmartphoneIcon fontSize="small" />
+                Por SMS
+              </div>
+              <p className={classes.pathDesc}>{maskPhone(session?.phonenumber || form.phonenumber)}</p>
+            </label>
+
+            {channel && codeSent ? (
+              <>
+                {destinationHint && (
+                  <Typography variant="body2" className={classes.hint}>{destinationHint}</Typography>
+                )}
+                {resentNotice && (
+                  <Typography variant="body2" className={classes.hint}>
+                    Usá el último código recibido. Los anteriores ya no sirven.
+                  </Typography>
+                )}
+                <TextField
+                  required
+                  className={classes.otpInput}
+                  label="Código de verificación"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  inputProps={{
+                    inputMode: 'numeric',
+                    autoComplete: 'one-time-code',
+                    maxLength: 6,
+                  }}
+                />
+                {devCode ? (
+                  <Typography variant="caption" className={classes.hint}>
+                    Dev code: {devCode}
+                  </Typography>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="contained"
+                  color="secondary"
+                  disabled={loading || !/^\d{6}$/.test(code.trim())}
+                  onClick={handleVerify}
+                >
+                  {loading ? 'Verificando y creando cuenta...' : 'Verificar y crear cuenta'}
+                </Button>
+                <Button
+                  type="button"
+                  disabled={loading || smsResendBlocked}
+                  onClick={() => handleSendCode({ isResend: true })}
+                >
+                  {resendLabel}
+                </Button>
+              </>
+            ) : null}
+
+            {channel && loading && !codeSent && destinationHint ? (
+              <Typography variant="body2" className={classes.hint}>{destinationHint}</Typography>
+            ) : null}
           </div>
         )}
+
       </div>
     </LoginLayout>
   );
