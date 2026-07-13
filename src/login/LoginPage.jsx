@@ -156,9 +156,11 @@ const LoginPage = () => {
     setCodeEnabled(false);
   };
 
-  const goToConectyRegister = () => {
+  const goToConectyRegister = (event) => {
+    event?.preventDefault?.();
     const returnTo = `${window.location.origin}/login`;
-    window.location.href = buildConectyRegisterUrl('ar', returnTo, email.trim());
+    // Misma ventana: en la app (WebView) target=_blank / window.open salen al navegador del sistema.
+    window.location.assign(buildConectyRegisterUrl('ar', returnTo, email.trim()));
   };
 
   const handleEmailContinue = async (event) => {
@@ -183,7 +185,7 @@ const LoginPage = () => {
       const data = await response.json();
       if (data.route === 'oidc') {
         const market = data.market || 'ar';
-        window.location.href = buildConectyOidcAuthorizeUrl(market, normalizedEmail);
+        window.location.assign(buildConectyOidcAuthorizeUrl(market, normalizedEmail));
         return;
       }
       setLoginStep('password');
@@ -232,7 +234,7 @@ const LoginPage = () => {
     const url = connection
       ? `/api/session/openid/auth?connection=${encodeURIComponent(connection)}`
       : '/api/session/openid/auth';
-    document.location = url;
+    window.location.assign(url);
   };
 
   useEffect(() => nativePostMessage('authentication'), []);
