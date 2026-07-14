@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   useMediaQuery, Select, MenuItem, FormControl, Button, TextField, Link, Snackbar, IconButton, Tooltip, Box, InputAdornment,
 } from '@mui/material';
@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { sessionActions } from '../store';
 import { useLocalization, useTranslation } from '../common/components/LocalizationProvider';
 import LoginLayout from './LoginLayout';
+import LoginTurnstile from './LoginTurnstile';
 import usePersistedState from '../common/util/usePersistedState';
 import {
   generateLoginToken, handleLoginTokenListeners, nativeEnvironment, appleNativeEnvironment, nativePostMessage,
@@ -119,6 +120,8 @@ const LoginPage = () => {
   const [email, setEmail] = usePersistedState('loginEmail', '');
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [turnstileKey, setTurnstileKey] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showServerTooltip, setShowServerTooltip] = useState(false);
   const [showQr, setShowQr] = useState(false);
@@ -141,6 +144,24 @@ const LoginPage = () => {
   const showPasswordStep = !emailRouting || loginStep === 'password';
   const showSocialLogin = openIdEnabled && !appleNativeEnvironment && !openIdForced;
   const showRegisterLink = !openIdForced;
+  const needsTurnstile = showPasswordStep && !codeEnabled;
+
+  const handleTurnstileVerify = useCallback((token) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
+
+  const handleTurnstileError = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
+
+  const resetTurnstile = () => {
+    setTurnstileToken('');
+    setTurnstileKey((key) => key + 1);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -186,6 +207,7 @@ const LoginPage = () => {
     setConectyRoute(null);
     setConectyExistingHint(false);
     setPasswordEmailStatus('');
+    resetTurnstile();
   };
 
   const goToConectyRegister = (event) => {
@@ -293,6 +315,11 @@ const LoginPage = () => {
   };
 
   const handleConectyPasswordLogin = async () => {
+    if (!turnstileToken) {
+      setFailed(true);
+      setRouteError(t('loginCaptchaRequired'));
+      return;
+    }
     setFailed(false);
     setRouteError('');
     setRouteLoading(true);
@@ -306,6 +333,7 @@ const LoginPage = () => {
           market: conectyRoute?.market || 'ar',
           vendor_id: conectyRoute?.vendor_id || undefined,
           vendor_slug: conectyRoute?.vendor_slug || undefined,
+          turnstileToken,
         }),
       });
       const json = await response.json().catch(() => ({}));
@@ -317,6 +345,9 @@ const LoginPage = () => {
           );
           return;
         }
+        if (json.error === 'CAPTCHA_REQUIRED' || json.error === 'CAPTCHA_FAILED') {
+          setRouteError(t('loginCaptchaFailed'));
+        }
         throw new Error(json.error || 'login_failed');
       }
       if (json.handoffUrl) {
@@ -327,6 +358,7 @@ const LoginPage = () => {
     } catch {
       setFailed(true);
       setPassword('');
+      resetTurnstile();
     } finally {
       setRouteLoading(false);
     }
@@ -338,12 +370,26 @@ const LoginPage = () => {
       await handleConectyPasswordLogin();
       return;
     }
+    if (!codeEnabled && !turnstileToken) {
+      setFailed(true);
+      setRouteError(t('loginCaptchaRequired'));
+      return;
+    }
     setFailed(false);
+    setRouteError('');
     try {
-      const query = `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`;
+      const params = new URLSearchParams();
+      params.set('email', email);
+      params.set('password', password);
+      if (code.length) {
+        params.set('code', code);
+      }
+      if (!codeEnabled && turnstileToken) {
+        params.set('turnstileToken', turnstileToken);
+      }
       const response = await fetch('/api/session', {
         method: 'POST',
-        body: new URLSearchParams(code.length ? `${query}&code=${code}` : query),
+        body: params,
       });
       if (response.ok) {
         const user = await response.json();
@@ -354,12 +400,19 @@ const LoginPage = () => {
         navigate(target, { replace: true });
       } else if (response.status === 401 && response.headers.get('WWW-Authenticate') === 'TOTP') {
         setCodeEnabled(true);
+        resetTurnstile();
+      } else if (response.status === 403) {
+        setRouteError(t('loginCaptchaFailed'));
+        throw Error('captcha_failed');
       } else {
         throw Error(await response.text());
       }
     } catch {
       setFailed(true);
       setPassword('');
+      if (!codeEnabled) {
+        resetTurnstile();
+      }
     }
   };
 
@@ -631,12 +684,31 @@ const LoginPage = () => {
                 onChange={(e) => setCode(e.target.value)}
               />
             )}
+            {needsTurnstile && (
+              <LoginTurnstile
+                key={turnstileKey}
+                onVerify={handleTurnstileVerify}
+                onExpire={handleTurnstileExpire}
+                onError={handleTurnstileError}
+              />
+            )}
+            {routeError && showPasswordStep && (
+              <Box sx={{ color: 'error.main', typography: 'body2' }}>
+                {routeError}
+              </Box>
+            )}
             <Button
               onClick={handlePasswordLogin}
               type="submit"
               variant="contained"
               color="secondary"
-              disabled={!email || !password || routeLoading || (codeEnabled && !code)}
+              disabled={
+                !email
+                || !password
+                || routeLoading
+                || (codeEnabled && !code)
+                || (needsTurnstile && !turnstileToken)
+              }
             >
               {routeLoading ? t('loginContinue') : t('loginLogin')}
             </Button>

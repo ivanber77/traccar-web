@@ -223,6 +223,8 @@
     "loginConectyCreatePassword": "Create / recover password",
     "loginConectyPasswordEmailSent": "We sent you an email to create your password. Check your inbox (and spam).",
     "loginConectyPasswordEmailFailed": "We could not send the email. Please try again in a few minutes.",
+    "loginCaptchaRequired": "Complete the security check to continue.",
+    "loginCaptchaFailed": "Security verification failed. Please try again.",
     "devicesAndState": "Devices and State",
     "deviceSelected": "Selected Device",
     "deviceTitle": "Devices",
