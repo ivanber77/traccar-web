@@ -144,7 +144,8 @@ const LoginPage = () => {
   const showPasswordStep = !emailRouting || loginStep === 'password';
   const showSocialLogin = openIdEnabled && !appleNativeEnvironment && !openIdForced;
   const showRegisterLink = !openIdForced;
-  const needsTurnstile = showPasswordStep && !codeEnabled;
+  // Turnstile iframe (challenges.cloudflare.com) is blocked by the Flutter WebView host filter.
+  const needsTurnstile = showPasswordStep && !codeEnabled && !nativeEnvironment;
 
   const handleTurnstileVerify = useCallback((token) => {
     setTurnstileToken(token);
@@ -315,7 +316,7 @@ const LoginPage = () => {
   };
 
   const handleConectyPasswordLogin = async () => {
-    if (!turnstileToken) {
+    if (needsTurnstile && !turnstileToken) {
       setFailed(true);
       setRouteError(t('loginCaptchaRequired'));
       return;
@@ -333,7 +334,8 @@ const LoginPage = () => {
           market: conectyRoute?.market || 'ar',
           vendor_id: conectyRoute?.vendor_id || undefined,
           vendor_slug: conectyRoute?.vendor_slug || undefined,
-          turnstileToken,
+          turnstileToken: needsTurnstile ? turnstileToken : undefined,
+          nativeApp: !!nativeEnvironment,
         }),
       });
       const json = await response.json().catch(() => ({}));
@@ -358,7 +360,9 @@ const LoginPage = () => {
     } catch {
       setFailed(true);
       setPassword('');
-      resetTurnstile();
+      if (needsTurnstile) {
+        resetTurnstile();
+      }
     } finally {
       setRouteLoading(false);
     }
@@ -370,7 +374,7 @@ const LoginPage = () => {
       await handleConectyPasswordLogin();
       return;
     }
-    if (!codeEnabled && !turnstileToken) {
+    if (needsTurnstile && !turnstileToken) {
       setFailed(true);
       setRouteError(t('loginCaptchaRequired'));
       return;
@@ -384,8 +388,11 @@ const LoginPage = () => {
       if (code.length) {
         params.set('code', code);
       }
-      if (!codeEnabled && turnstileToken) {
+      if (needsTurnstile && turnstileToken) {
         params.set('turnstileToken', turnstileToken);
+      }
+      if (nativeEnvironment) {
+        params.set('nativeApp', 'true');
       }
       const response = await fetch('/api/session', {
         method: 'POST',
@@ -400,7 +407,9 @@ const LoginPage = () => {
         navigate(target, { replace: true });
       } else if (response.status === 401 && response.headers.get('WWW-Authenticate') === 'TOTP') {
         setCodeEnabled(true);
-        resetTurnstile();
+        if (needsTurnstile) {
+          resetTurnstile();
+        }
       } else if (response.status === 403) {
         setRouteError(t('loginCaptchaFailed'));
         throw Error('captcha_failed');
@@ -410,7 +419,7 @@ const LoginPage = () => {
     } catch {
       setFailed(true);
       setPassword('');
-      if (!codeEnabled) {
+      if (needsTurnstile) {
         resetTurnstile();
       }
     }

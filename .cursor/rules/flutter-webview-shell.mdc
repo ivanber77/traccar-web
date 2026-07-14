@@ -1,0 +1,31 @@
+---
+description: El front web de Cotrack también corre dentro de la app Flutter (WebView) — mantener compatibilidad
+alwaysApply: true
+---
+
+# Front Cotrack = app móvil (WebView)
+
+La app Flutter CoTrack (`~/Desktop/CoTrack`) **no tiene UI nativa de login**: es un shell WebView que carga `https://cotrack.conecty.io`.
+
+**No modificar esa app salvo pedido explícito.** Cualquier cambio en este frontend debe pensarse como cambio en la app.
+
+## Checklist antes de merge/deploy
+
+- ¿Funciona en WebView (Android System WebView / iOS WKWebView), no solo Chrome/Safari desktop?
+- ¿Se agregan iframes / dominios third-party (Turnstile, OAuth, Conecty)? La app **cancela navegaciones a hosts ≠ `cotrack.conecty.io`** en `onNavigationRequest` (`MainScreen`) — puede romper widgets embebidos.
+- ¿Depende de cookies third-party, popups o User-Agent de browser real? En WebView suelen fallar.
+- Usar `nativeEnvironment` / `appleNativeEnvironment` (`NativeInterface.js`) si el flujo debe diferir en app.
+- Probar mentalmente (o en dispositivo) login, captcha, handoff Conecty y deep links.
+
+## Turnstile / captcha
+
+- El iframe de Cloudflare (`challenges.cloudflare.com`) **no carga en la app** por el filtro de hosts.
+- En browser: mostrar y exigir Turnstile.
+- En app (`nativeEnvironment`): **no** renderizar Turnstile; enviar `nativeApp: true` / `nativeApp=true` y el backend saltea la verificación.
+- No “arreglar” Turnstile en la app Flutter sin pedido explícito.
+
+## Paths de referencia (solo lectura / contexto)
+
+- App: `~/Desktop/CoTrack/lib/main_screen.dart`
+- Bridge web↔nativo: `src/common/components/NativeInterface.js`
+- Login: `src/login/*`
